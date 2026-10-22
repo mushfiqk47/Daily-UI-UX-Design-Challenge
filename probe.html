@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>probe</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      body { margin: 0; background: #fff; }
+      .spec { font-family: Inter; white-space: nowrap; }
+      .sora { font-family: Sora; }
+      .box { display: block; }
+    </style>
+  </head>
+  <body>
+    <pre id="env"></pre>
+    <div id="specimens"></div>
+    <pre id="rolls"></pre>
+    <script type="module">
+      const env = document.getElementById("env")
+      env.textContent =
+        "VIEWPORT " + innerWidth + "x" + innerHeight + " dpr=" + devicePixelRatio
+
+      const sentence = "Find a competitive run nearby without wasting a trip."
+      const sizes = [9, 10, 11, 12, 13, 14]
+      const out = []
+      for (const s of sizes) {
+        const d = document.createElement("div")
+        d.className = "spec box"
+        d.style.fontSize = s + "px"
+        d.style.fontWeight = "400"
+        d.textContent = sentence
+        document.getElementById("specimens").appendChild(d)
+        out.push("INTER400_" + s)
+      }
+      for (const s of [14, 15, 16, 17, 18]) {
+        const d = document.createElement("div")
+        d.className = "spec sora box"
+        d.style.fontSize = s + "px"
+        d.style.fontWeight = "700"
+        d.textContent = "Product"
+        document.getElementById("specimens").appendChild(d)
+        out.push("SORA700_PRODUCT_" + s)
+      }
+      for (const s of [20, 22, 24, 26]) {
+        const d = document.createElement("div")
+        d.className = "spec sora box"
+        d.style.fontSize = s + "px"
+        d.style.fontWeight = "700"
+        d.textContent = "Ondeck"
+        document.getElementById("specimens").appendChild(d)
+        out.push("SORA700_ONDECK_" + s)
+      }
+      for (const s of [14, 15, 16]) {
+        const d = document.createElement("div")
+        d.className = "spec box"
+        d.style.fontSize = s + "px"
+        d.style.fontWeight = "600"
+        d.textContent = "Goals"
+        document.getElementById("specimens").appendChild(d)
+        out.push("INTER600_GOALS_" + s)
+      }
+
+      const { generateBrief } = await import("/src/lib/generate.ts")
+      const res = []
+      const d = new Date()
+      const iso = new Date(d.getTime() - d.getTimezoneOffset() * 60000)
+        .toISOString()
+        .slice(0, 10)
+      for (let r = 0; r < 40; r++) {
+        const b = generateBrief(iso, r, { platform: "Any", type: "Any" })
+        if (!b) continue
+        if (
+          b.product.name === "Ondeck" &&
+          b.persona.name === "Noor Khalil" &&
+          b.tone.adjectives === "Energetic, streetwise"
+        ) {
+          res.push(
+            "MATCH roll=" + r + " date=" + iso + " age=" + b.persona.age + " constraints=" + JSON.stringify(b.constraints),
+          )
+        }
+      }
+      document.getElementById("rolls").textContent =
+        "SPECIMENS " + out.join(",") + "\n" + (res.join("\n") || "NO MATCH in 0..39")
+    </script>
+  </body>
+</html>
