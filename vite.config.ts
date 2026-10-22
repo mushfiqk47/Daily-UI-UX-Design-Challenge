@@ -38,10 +38,24 @@ export default defineConfig(({ mode }) => {
       watch: {
         ignored: ["**/.figma/**", "**/.shots/**"],
       },
+      proxy: {
+        "/ollama": {
+          target: "http://localhost:11434",
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/ollama/, ""),
+        },
+      },
     },
     preview: {
       host: process.env.FIGMA_DEV_SERVER_HOST || "0.0.0.0",
       port: parseInt(process.env.PORT || "8443"),
+      proxy: {
+        "/ollama": {
+          target: "http://localhost:11434",
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/ollama/, ""),
+        },
+      },
     },
   }
 })

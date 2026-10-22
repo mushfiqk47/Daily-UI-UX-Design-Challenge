@@ -33,6 +33,10 @@
   }
 }
 
+:root {
+  interpolate-size: allow-keywords;
+}
+
 @keyframes rise {
   from {
     opacity: 0;
@@ -46,8 +50,24 @@
 .animate-rise {
   animation: rise 420ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
+
+@keyframes contentReveal {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-reveal {
+  animation: contentReveal 380ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .animate-rise {
+  .animate-rise,
+  .animate-reveal {
     animation: none;
   }
 }

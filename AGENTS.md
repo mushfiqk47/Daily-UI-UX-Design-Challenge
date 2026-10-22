@@ -1,106 +1,178 @@
-
 ---
-name: karpathy-guidelines
-description: Behavioral guidelines to reduce common LLM coding mistakes. Use when writing, reviewing, or refactoring code to avoid overcomplication, make surgical changes, surface assumptions, and define verifiable success criteria.
+name: dailybrief-agent-guide
+description: Engineering principles, canonical architecture, design standards, and logging protocol for coding agents working on the Dailybrief codebase.
 license: MIT
 ---
 
-# Karpathy Guidelines
+# Dailybrief Agent Guide & Engineering System
 
-Behavioral guidelines to reduce common LLM coding mistakes, derived from [Andrej Karpathy's observations](https://x.com/karpathy/status/2015883857489522876) on LLM coding pitfalls.
+This document is the single source of truth for AI agents (Antigravity, Claude Code, Codex, Gemini) and human contributors working on **Dailybrief** (Daily UI/UX Design Challenge).
 
-**Tradeoff:** These guidelines bias toward caution over speed. For trivial tasks, use judgment.
+---
 
-## 1. Think Before Coding
+## 1. Core Engineering Invariants (Karpathy Guidelines)
 
-**Don't assume. Don't hide confusion. Surface tradeoffs.**
+### 1.1 Think Before Coding
+- **Never guess or assume.** If requirements or intent are underspecified, clarify before modifying files.
+- Surface tradeoffs and edge cases early. If multiple viable approaches exist, state them explicitly.
+- Ground before mutating: Read the target component, its props, and its parent/callers before editing.
 
-Before implementing:
-- State your assumptions explicitly. If uncertain, ask.
-- If multiple interpretations exist, present them - don't pick silently.
-- If a simpler approach exists, say so. Push back when warranted.
-- If something is unclear, stop. Name what's confusing. Ask.
+### 1.2 Simplicity First
+- Minimum code that solves the problem. Nothing speculative.
+- No unused abstractions, wrappers, or speculative configurability for single-use logic.
+- Avoid defensive error handling for impossible scenarios in pure UI components.
+- If an implementation takes 200 lines when 50 lines suffice, rewrite and simplify.
 
-## 2. Simplicity First
+### 1.3 Surgical Changes
+- Touch only what you must. Match existing project style, naming conventions, and patterns.
+- Do not modify adjacent code, reformat untouched regions, or delete pre-existing code unless directly requested.
+- Clean up only your own orphans: remove imports, variables, or helpers that *your* changes made obsolete.
+- Every modified line must trace directly to the user's task.
 
-**Minimum code that solves the problem. Nothing speculative.**
+### 1.4 Goal-Driven Execution & Verification
+- State verifiable success criteria before running mutations:
+  1. `[Step]` -> verify: `[Check]`
+  2. `[Step]` -> verify: `[Check]`
+- Always run `pnpm run build` and `pnpm exec oxfmt src` before declaring completion.
+- Verify live behavior via the running dev server without errors.
 
-- No features beyond what was asked.
-- No abstractions for single-use code.
-- No "flexibility" or "configurability" that wasn't requested.
-- No error handling for impossible scenarios.
-- If you write 200 lines and it could be 50, rewrite it.
+---
 
-Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
+## 2. Canonical Architecture & Project Structure
 
-## 3. Surgical Changes
+Dailybrief is built with **React 19**, **TypeScript 5.7**, **Tailwind CSS v4** (`@tailwindcss/vite`), and **Vite 8**.
 
-**Touch only what you must. Clean up only your own mess.**
-
-When editing existing code:
-- Don't "improve" adjacent code, comments, or formatting.
-- Don't refactor things that aren't broken.
-- Match existing style, even if you'd do it differently.
-- If you notice unrelated dead code, mention it - don't delete it.
-
-When your changes create orphans:
-- Remove imports/variables/functions that YOUR changes made unused.
-- Don't remove pre-existing dead code unless asked.
-
-The test: Every changed line should trace directly to the user's request.
-
-## 4. Goal-Driven Execution
-
-**Define success criteria. Loop until verified.**
-
-Transform tasks into verifiable goals:
-- "Add validation" → "Write tests for invalid inputs, then make them pass"
-- "Fix the bug" → "Write a test that reproduces it, then make it pass"
-- "Refactor X" → "Ensure tests pass before and after"
-
-For multi-step tasks, state a brief plan:
+```text
+src/
+├── App.tsx                           # Root orchestrator: state hydration, keyboard bindings, dock, toasts
+├── main.tsx                          # React entrypoint: mounts App and provides ErrorBoundary
+├── index.css                         # Tailwind CSS v4 entrypoint, Sora & Inter fonts, custom keyframes
+├── components/
+│   ├── InfiniteCanvas.tsx            # Hardware-accelerated 2D canvas: pan, pinch-zoom, fit-to-view
+│   ├── BriefWorld.tsx                # 3-column brief canvas container & line-by-line reveal manager
+│   ├── SavedPanel.tsx                # Persisted saved briefs slide-out drawer with keyword search
+│   ├── SettingsDrawer.tsx            # Generator configuration & AI provider settings drawer
+│   ├── SprintTimer.tsx               # Design sprint timer with presets and custom duration
+│   ├── DocumentationModal.tsx        # In-app user manual, provider setup, and local CORS guide
+│   ├── CustomDropdown.tsx            # Accessible custom dropdown component
+│   ├── XLogo.tsx                     # Vector brand component for 𝕏 / Twitter sharing
+│   ├── cards/                        # Domain brief card subcomponents
+│   │   ├── TopFloatingBadge.tsx      # Product name pill, platform indicator, and challenge type
+│   │   ├── ProductConstraintsCard.tsx# Left panel: product description, value prop, constraints, tone
+│   │   ├── TaskCard.tsx              # Center panel: task challenge, goal, interactive checklist
+│   │   └── PersonaAudienceCard.tsx   # Right panel: persona profile, pain points, quote, target audience
+│   └── settings/                     # Isolated provider configuration panels
+│       ├── WebGpuSection.tsx         # Local WebGPU model weights, VRAM cache, download progress
+│       ├── OpenAiSection.tsx         # OpenAI key, model selector, connection test
+│       ├── GeminiSection.tsx         # Google Gemini AI Studio key and model selector
+│       ├── AnthropicSection.tsx      # Anthropic Claude API key, base URL, and model selector
+│       └── CustomEndpointSection.tsx # Ollama, LM Studio, Groq, OpenRouter configuration
+├── lib/
+│   ├── ai.ts                         # Unified AI client, lazy WebLLM loader, and JSON repair
+│   └── generate.ts                   # Deterministic brief generator and Markdown export formatting
+└── data/
+    └── library.ts                    # 100+ curated deterministic seed briefs across 48+ industries
 ```
-1. [Step] → verify: [check]
-2. [Step] → verify: [check]
-3. [Step] → verify: [check]
+
+---
+
+## 3. Tooling & Development Workflow
+
+### Dev Server
+A Vite development server runs on `$PORT` (default `8443` in cloud environments, or `5173` locally).
+- **HMR**: Changes to source files hot-reload instantly.
+- **Built-in Proxy**: The endpoint `/ollama/v1` proxies to `http://localhost:11434/v1` to eliminate browser CORS restrictions.
+
+### Essential Commands
+```bash
+# Run local dev server
+pnpm dev
+
+# Typecheck and compile production bundle
+pnpm run build
+
+# Format codebase with oxfmt
+pnpm exec oxfmt src
+
+# Preview production build
+pnpm run preview
 ```
 
-Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
+---
 
-# figma-make-app
+## 4. UI Craftsmanship & Design System (antislop Standards)
 
-React + Vite + Tailwind CSS project running inside Figma Make.
+This codebase follows strict **antislop** UI and code hygiene rules:
 
-## Development Server
+1. **Color Contrast (WCAG AA)**
+   - Text on light surfaces must achieve a contrast ratio of at least `4.5:1` (normal text) or `3:1` (large text).
+   - Use `text-slate` (`#55585e`) or `text-charcoal` (`#333336`) for secondary text and hints. Avoid low-contrast grays on surface backgrounds.
+   - Minimum font size for readable hints is `10.5px` or `11px`.
+2. **Copywriting Integrity**
+   - **No em dashes (`—`)** in UI copy. Use commas, hyphens, colons, or parentheses.
+   - Avoid generic AI buzzwords ("Instant", "Seamless", "Revolutionary", "Next Generation").
+   - Action buttons must have specific, descriptive labels (e.g. "Generate brief", "Save for later").
+3. **Intentional Geometry (Border Radius)**
+   - Do NOT make every element pill-shaped.
+   - Reserve `rounded-full` exclusively for the primary floating CTA ("Generate brief") and the daily streak counter.
+   - Main content cards use `rounded-[24px]`.
+   - Toolbars, action buttons, timer containers, and modal controls use `rounded-xl` or `rounded-lg`.
+4. **Purposeful Iconography**
+   - Avoid generic AI sparkle or lightning bolt icons (`Sparkles`, `Zap`).
+   - Use action-grounded icons: `Shuffle` for brief generation, `Layers` for design systems/brand, `SlidersHorizontal` for settings, and `Cpu` for hardware/AI inference.
+5. **Calm Motion (No Endless Loops)**
+   - Do not use perpetual `animate-pulse`, `animate-ping`, or `animate-bounce` on status indicators.
+   - State indicators use steady, calm colored dots (e.g. solid `bg-emerald-500` for active WebGPU model).
+   - Card reveals follow the staggered `42ms` reveal rhythm with `1300ms` container height growth.
+6. **Code Comment Hygiene**
+   - Avoid empty labels or comments that merely restate JSX tags (`{/* Drawer */}`, `{/* Backdrop */}`, `{/* Header */}`).
+   - Preserve comments that document business constraints, non-obvious workarounds, API protocols, or algorithms.
 
-A Vite development server is **already running** on `$PORT` (default 8443). You don't need to start it manually.
+---
 
-- Preview URL: The user can access the running app through the preview panel
-- Hot reload: Changes to source files are reflected immediately
+## 5. Agent Work Log System (`CHANGELOG.md`)
 
-## Project Structure
+To ensure long-term continuity across autonomous agent sessions, prevent regressions, and provide visibility into architectural decisions, all coding agents must record meaningful changes, refactors, and feature additions in [`CHANGELOG.md`](./CHANGELOG.md).
 
-This is the canonical project structure. Start with task-relevant files below. Only follow imports or inspect other files when required, when a documented path is missing, or when the repository contradicts this guide.
+### 5.1 When to Log
+An entry must be recorded in `CHANGELOG.md` whenever an agent:
+- Implements a new feature, component, or capability.
+- Refactors or decomposes existing modules or component boundaries.
+- Resolves design system, accessibility, or antislop audit findings.
+- Fixes functional bugs, runtime exceptions, or layout glitches.
+- Modifies tooling, dependencies, or configuration files (`vite.config.ts`, `package.json`).
 
-- `src/main.tsx` - React entrypoint; imports `src/index.css` and mounts `src/App.tsx` into the `#root` element
-- `src/App.tsx` - Primary application component and the usual starting point for UI work
-- `src/index.css` - Global CSS entrypoint and Tailwind CSS v4 import
-- `index.html` - Vite HTML shell containing the `#root` element and loading `src/main.tsx`
-- `package.json` - Project dependencies and the Vite build, development, preview, and formatting scripts
-- `vite.config.ts` - Vite configuration with React, Tailwind CSS v4, and Figma Make plugins plus the `@` alias for `src`
-- `.mise.toml` - Toolchain versions for Node.js and pnpm
+### 5.2 Changelog Format Standard
+`CHANGELOG.md` adheres to [Keep a Changelog](https://keepachangelog.com/) standards with an integrated **Agent Verification Protocol**:
 
-## Dependencies
+```markdown
+## [Version or Date] - YYYY-MM-DD
 
-- Runtime: React 19 and React DOM 19
-- Styling: Tailwind CSS v4 with the `@tailwindcss/vite` plugin
-- Build tooling: Vite 8, TypeScript 5.7, and `@vitejs/plugin-react`
-- Formatting: oxfmt
+### Added | Changed | Refactored | Fixed | Performance
+- **<Change Title>**: Concise description of what changed and why.
+  - **Modules Affected**: `src/components/cards/...`, `src/lib/...`
+  - **Decisions & Trade-offs**: Brief rationale for structural decisions.
+  - **Verification**: `pnpm run build` (pass/fail, build time), `oxfmt` (pass/fail).
+```
 
-## Styling
+### 5.3 Invariants for Agent Logging
+1. **Evidence-backed**: Every log entry must include verification evidence (compiler output, test results, or build time).
+2. **Surgical descriptions**: State the exact component or file modified; do not write vague summaries like "improved code".
+3. **No hype**: Avoid hyperbolic statements. State the technical facts and measured outcomes.
+4. **Chronological order**: Latest releases and session logs always appear at the top of the file under `## [Unreleased]` or the latest version block.
 
-This project uses **Tailwind CSS v4** through the `@tailwindcss/vite` plugin configured in `vite.config.ts`. `src/index.css` imports Tailwind with `@import 'tailwindcss';`. Use Tailwind utility classes directly in JSX and put global CSS or Tailwind v4 theme customization in `src/index.css`. This scaffold does not need a Tailwind config file or PostCSS config.
+---
 
-`src/main.tsx` imports `src/index.css`, so global font wiring belongs in `src/index.css`. Keep CSS `@import` statements first, then add any `@font-face` rules and font-family defaults there.
-
-Tailwind emits utility classes in `@layer utilities`, and CSS outside any cascade layer overrides every layer regardless of specificity. Put global element styles, such as resets and defaults for `body`, headings, `button`, or `input`, inside `@layer base { ... }` so utility classes on those elements still apply. Tailwind's Preflight already applies `box-sizing: border-box`, removes default margins, and sets `font: inherit` on form controls, so do not repeat those rules.
+<!-- antislop:start -->
+## antislop
+For UI, copy, people, mobile layout, or code comments work, read `antislop.md` (core) and then the skill for the task:
+- UI / visual: `skills/antislop-ui/SKILL.md`
+- Copy & text: `skills/antislop-copywriting/SKILL.md`
+- People: `skills/antislop-human/SKILL.md`
+- Mobile / responsive: `skills/antislop-layoutmobile/SKILL.md`
+- Code comments: `skills/antislop-code/SKILL.md`
+Before starting, follow the core's "Two Usage Modes" section in strict order: explicit session instruction first, then global preference, then ask. A session instruction always wins. For a resolved mode, say `antislop active: <mode> (session override).` or `antislop active: <mode> (global preference).` once before presenting findings or making edits, using the actual mode and source. Acknowledging the user's request without naming the source does not replace this notice.
+Only an explicit choice of antislop during or after selects a session mode. A request to review, audit, or avoid file edits does not select a mode; read the global preference in that case. Another skill's mode does not select antislop's mode.
+If the mode is unresolved, ask during/after and end the response; wait for the answer before any UI review, planning, or concept. For read-only tasks, put the active-mode notice only at the start of the final answer, never in progress messages. For editing tasks, announce before the first edit and omit it from the final answer.
+To update antislop later: download `antislop.md` again, or run `npx antislop-ai --update` if it was installed as skill folders.
+<!-- antislop:end -->

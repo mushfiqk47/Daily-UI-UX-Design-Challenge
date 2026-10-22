@@ -28,7 +28,10 @@ export interface Brief {
   }
   task: Omit<TaskSeed, "pains" | "quote">
   constraints: string[]
-  tone: { adjectives: string note: string }
+  tone: {
+    adjectives: string
+    note: string
+  }
 }
 
 const EPOCH = Date.UTC(2025, 0, 1)
