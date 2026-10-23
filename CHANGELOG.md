@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ---
 
+## [1.3.0] - 2026-10-23
+
+### Added
+- **3x Expansion of Seed Library (`src/data/library.ts`)**:
+  - Tripled deterministic seed product repository from 47 products to **144 comprehensive products** across diverse real-world specialized industries (aerospace line maintenance, marine bioacoustics, industrial metallurgy, surgical instrument sterilization, historic masonry restoration, civil bridge strain telemetry, metrology calibration, geothermal utility operations, and artisanal milling).
+  - Tripled `CONSTRAINTS` array from 12 to **36 realistic design constraints** (covering WCAG AA compliance, single-thumb ergonomics, offline-first sync states, tabular data density, and high-glare ramp contrast).
+  - Tripled `NAMES` seed pool from 52 to **154 global designer and persona names**.
+  - All copy strictly adheres to antislop copywriting standards: zero em dashes (`—`), zero generic AI buzzwords, and grounded domain-specific context.
+  - **Modules Affected**: [`src/data/library.ts`](file:///c:/Users/mushfiq/Documents/Daily%20UI_UX%20Design%20Challenge/src/data/library.ts).
+  - **Verification**: `pnpm run build` (pass, 807ms), `pnpm exec oxfmt src` (pass).
+
+---
+
 ## [1.2.0] - 2026-10-23
 
 ### Refactored
@@ -35,6 +48,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   - **Copywriting**: Stripped decorative "Instant" AI capsule badge; ensured UI copy contains no em dashes.
 
 ### Added
+- **Transparent Brand Mark & Favicon Refinement**:
+  - Removed the solid dark square tile background from the logo in the header and [`public/favicon.svg`](file:///c:/Users/mushfiq/Documents/Daily%20UI_UX%20Design%20Challenge/public/favicon.svg).
+  - Created [`src/components/BrandLogo.tsx`](file:///c:/Users/mushfiq/Documents/Daily%20UI_UX%20Design%20Challenge/src/components/BrandLogo.tsx) to render the 3D layers mark with clean transparent background, crisp `#18181B` top stroke, and signature `#E0307E` pink accent lines.
+  - Set semantic title `<title>Dailybrief - Daily UI/UX Design Challenge</title>` and `lang="en"` in `index.html`.
+- **Social Feedback Badge**:
+  - Integrated `@mushfiqk47` 𝕏 (Twitter) feedback pill in the top-left navigation bar beside `Dailybrief` and the habit streak badge.
+  - Deep links to `https://x.com/mushfiqk47` with `target="_blank" rel="noopener noreferrer"`.
+  - Styled with dark charcoal container (`bg-[#18181b] border-zinc-700/60`), white vector `XLogo`, and accessible tooltip.
 - **Engineering Documentation & Standards**:
   - `AGENTS.md`: Full architectural reference, Karpathy engineering invariants, antislop standards, and the agent logging system specification.
   - `DOCUMENTATION.md`: Comprehensive end-user manual, AI provider setup instructions, and local Ollama proxy documentation.

@@ -5,7 +5,6 @@ import {
   Copy,
   Download,
   Flame,
-  Layers,
   Loader2,
   Shuffle,
   SlidersHorizontal,
@@ -17,6 +16,7 @@ import { InfiniteCanvas } from "./components/InfiniteCanvas"
 import { BriefWorld } from "./components/BriefWorld"
 import { SavedPanel } from "./components/SavedPanel"
 import { XLogo } from "./components/XLogo"
+import { BrandLogo } from "./components/BrandLogo"
 
 const fRegular = "font-inter font-normal"
 const fMedium = "font-inter font-medium"
@@ -260,9 +260,9 @@ export default function App() {
         />
       </InfiniteCanvas>
 
-      <div className="pointer-events-none fixed left-4 top-4 z-40 sm:left-6 sm:top-6 flex items-center gap-3">
+      <div className="pointer-events-none fixed left-4 top-4 z-40 sm:left-6 sm:top-6 flex items-center gap-2 sm:gap-3">
         <div className="pointer-events-auto flex items-center gap-2.5">
-          <Layers className="size-6 text-ink" />
+          <BrandLogo className="size-6" />
           <span
             className={`${fBold} text-[19px] tracking-[-0.5px] text-ink select-none`}
           >
@@ -278,6 +278,19 @@ export default function App() {
             {streak} {streak === 1 ? "day" : "days"} streak
           </span>
         </div>
+        <a
+          href="https://x.com/mushfiqk47"
+          target="_blank"
+          rel="noopener noreferrer"
+          title="Give feedback to @mushfiqk47 on 𝕏"
+          aria-label="Give feedback on X to @mushfiqk47"
+          className="pointer-events-auto flex items-center gap-1.5 rounded-full border border-zinc-700/60 bg-[#18181b] hover:bg-black px-2.5 py-1 text-[12px] text-white shadow-xs transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+        >
+          <XLogo className="size-3 text-white" />
+          <span className={`${fMedium} text-stone-200 tracking-tight`}>
+            @mushfiqk47
+          </span>
+        </a>
       </div>
 
       <div className="fixed right-4 top-4 z-40 sm:right-6 sm:top-6 flex items-center gap-2">
