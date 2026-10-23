@@ -4,6 +4,15 @@ All notable changes to the **Dailybrief** project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and adheres to the **Agent Logging Protocol** defined in [`AGENTS.md`](./AGENTS.md).
 
+## [1.3.1] - 2026-10-23
+
+### Fixed
+- **Vercel CI/CD Build Failure (`vite.config.ts`)**:
+  - Replaced static import `import siteConfiguration from "./.figma/make/site.json"` with dynamic filesystem check (`fs.existsSync`) and fallback configuration.
+  - Eliminates `[UNRESOLVED_IMPORT] Error: Could not resolve './.figma/make/site.json'` during clean repository builds in cloud deployment platforms (such as Vercel, Netlify, or Docker) where `.figma/` is gitignored.
+  - **Modules Affected**: [`vite.config.ts`](file:///c:/Users/mushfiq/Documents/Daily%20UI_UX%20Design%20Challenge/vite.config.ts).
+  - **Verification**: `pnpm run build` (pass, 939ms), verified build passes with and without `.figma/` directory.
+
 ---
 
 ## [1.3.0] - 2026-10-23

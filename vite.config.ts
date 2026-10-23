@@ -1,9 +1,60 @@
 import { defineConfig, type HtmlTagDescriptor, type Plugin } from "vite"
 import react from "@vitejs/plugin-react"
 import tailwindcss from "@tailwindcss/vite"
+import fs from "node:fs"
 import path from "node:path"
 
-import siteConfiguration from "./.figma/make/site.json"
+type FigmaSiteConfiguration = {
+  title?: string
+  description?: string
+  language?: string
+  robots?: {
+    index?: boolean
+  }
+  icons?: {
+    icon?: string
+  }
+  openGraph?: {
+    image?: string
+  }
+  analytics?: {
+    googleAnalyticsId?: string
+  }
+  customScripts?: {
+    headStart?: string
+    headEnd?: string
+    bodyStart?: string
+    bodyEnd?: string
+  }
+  accessibility?: {
+    addBypassLinks?: boolean
+  }
+}
+
+function loadSiteConfiguration(): FigmaSiteConfiguration {
+  const siteConfigPath = path.resolve(__dirname, "./.figma/make/site.json")
+  if (fs.existsSync(siteConfigPath)) {
+    try {
+      return JSON.parse(fs.readFileSync(siteConfigPath, "utf-8"))
+    } catch {
+      // Fall through to default configuration if parse fails
+    }
+  }
+
+  return {
+    title: "Dailybrief - Daily UI/UX Design Challenge",
+    description:
+      "Delivers daily focused UI/UX design challenges with detailed briefs to help designers sharpen skills through realistic, single-screen projects.",
+    icons: {
+      icon: "/favicon.svg",
+    },
+    accessibility: {
+      addBypassLinks: false,
+    },
+  }
+}
+
+const siteConfiguration = loadSiteConfiguration()
 
 // Vite config — https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
@@ -59,33 +110,6 @@ export default defineConfig(({ mode }) => {
     },
   }
 })
-
-type FigmaSiteConfiguration = {
-  title?: string
-  description?: string
-  language?: string
-  robots?: {
-    index?: boolean
-  }
-  icons?: {
-    icon?: string
-  }
-  openGraph?: {
-    image?: string
-  }
-  analytics?: {
-    googleAnalyticsId?: string
-  }
-  customScripts?: {
-    headStart?: string
-    headEnd?: string
-    bodyStart?: string
-    bodyEnd?: string
-  }
-  accessibility?: {
-    addBypassLinks?: boolean
-  }
-}
 
 /** Applies /.figma/make/site.json to the generated document shell. */
 function figmaSiteConfiguration(config: FigmaSiteConfiguration): Plugin {
