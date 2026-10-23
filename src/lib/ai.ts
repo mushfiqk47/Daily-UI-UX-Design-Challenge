@@ -477,22 +477,32 @@ export async function generateAiBrief(
     const baseUrl =
       settings.anthropicBaseUrl?.replace(/\/$/, "") ||
       "https://api.anthropic.com"
-    const res = await fetch(`${baseUrl}/v1/messages`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": settings.anthropicApiKey.trim(),
-        "anthropic-version": "2023-06-01",
-        "dangerously-allow-browser": "true",
-      },
-      body: JSON.stringify({
-        model,
-        max_tokens: 1500,
-        system: BRIEF_SYSTEM_PROMPT,
-        messages: [{ role: "user", content: userPrompt }],
-        temperature: 0.7,
-      }),
-    })
+    let res: Response
+    try {
+      res = await fetch(`${baseUrl}/v1/messages`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": settings.anthropicApiKey.trim(),
+          "anthropic-version": "2023-06-01",
+          "dangerously-allow-browser": "true",
+        },
+        body: JSON.stringify({
+          model,
+          max_tokens: 1500,
+          system: BRIEF_SYSTEM_PROMPT,
+          messages: [{ role: "user", content: userPrompt }],
+          temperature: 0.7,
+        }),
+      })
+    } catch (err: any) {
+      if (baseUrl.includes("api.anthropic.com")) {
+        throw new Error(
+          "Direct browser calls to api.anthropic.com are blocked by Anthropic's CORS policy. Configure an edge proxy in Anthropic Base URL (e.g. Cloudflare AI Gateway) or switch to Gemini, OpenAI, or local WebGPU.",
+        )
+      }
+      throw err
+    }
 
     if (!res.ok) {
       const err = await res.text()
@@ -518,11 +528,12 @@ export async function generateAiBrief(
 
     onProgress?.(`Generating brief with Gemini ${model}...`)
     const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${settings.geminiApiKey.trim()}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
       {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "x-goog-api-key": settings.geminiApiKey.trim(),
         },
         body: JSON.stringify({
           system_instruction: {
@@ -596,8 +607,16 @@ export async function generateAiBrief(
             body: payload,
           })
         } catch {
+          if (
+            typeof window !== "undefined" &&
+            window.location.protocol === "https:"
+          ) {
+            throw new Error(
+              "Local Ollama (HTTP) cannot be reached from a public HTTPS deployment due to browser Mixed Content security rules. Use WebGPU for 100% private in-browser generation, configure an HTTPS tunnel, or run Dailybrief locally.",
+            )
+          }
           throw new Error(
-            'Ollama blocked by browser CORS. Run: setx OLLAMA_ORIGINS "*" in terminal, restart Ollama, or use "/ollama/v1" endpoint.',
+            'Ollama blocked by browser CORS. Run: setx OLLAMA_ORIGINS "*" in terminal, restart Ollama, or use "/ollama/v1" endpoint in local dev.',
           )
         }
       } else {

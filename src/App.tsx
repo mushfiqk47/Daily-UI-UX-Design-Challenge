@@ -1,4 +1,6 @@
-import { useEffect, useState } from "react"
+import { Suspense, lazy, useEffect, useState } from "react"
+import { Analytics } from "@vercel/analytics/react"
+import { SpeedInsights } from "@vercel/speed-insights/react"
 import {
   Bookmark,
   Check,
@@ -11,12 +13,19 @@ import {
 } from "lucide-react"
 import { generateBrief, toMarkdown, todayISO, type Brief } from "./lib/generate"
 import { DEFAULT_AI_SETTINGS, generateAiBrief, type AiSettings } from "./lib/ai"
-import { SettingsDrawer } from "./components/SettingsDrawer"
 import { InfiniteCanvas } from "./components/InfiniteCanvas"
 import { BriefWorld } from "./components/BriefWorld"
-import { SavedPanel } from "./components/SavedPanel"
 import { XLogo } from "./components/XLogo"
 import { BrandLogo } from "./components/BrandLogo"
+
+const SettingsDrawer = lazy(() =>
+  import("./components/SettingsDrawer").then((m) => ({
+    default: m.SettingsDrawer,
+  })),
+)
+const SavedPanel = lazy(() =>
+  import("./components/SavedPanel").then((m) => ({ default: m.SavedPanel })),
+)
 
 const fRegular = "font-inter font-normal"
 const fMedium = "font-inter font-medium"
@@ -85,13 +94,36 @@ function usePersistent<T>(key: string, initial: T) {
   const [value, setValue] = useState<T>(() => {
     try {
       const raw = localStorage.getItem(key)
-      return raw ? JSON.parse(raw) as T : initial
+      if (!raw) return initial
+      const parsed = JSON.parse(raw)
+      if (parsed === null || parsed === undefined) return initial
+      if (
+        typeof initial === "object" &&
+        initial !== null &&
+        !Array.isArray(initial) &&
+        typeof parsed === "object" &&
+        parsed !== null &&
+        !Array.isArray(parsed)
+      ) {
+        return { ...initial, ...parsed }
+      }
+      if (Array.isArray(initial) && !Array.isArray(parsed)) {
+        return initial
+      }
+      return parsed as T
     } catch {
       return initial
     }
   })
   useEffect(() => {
-    localStorage.setItem(key, JSON.stringify(value))
+    try {
+      localStorage.setItem(key, JSON.stringify(value))
+    } catch (err) {
+      console.warn(
+        `[Dailybrief] Failed to persist "${key}" to localStorage:`,
+        err,
+      )
+    }
   }, [key, value])
   return [value, setValue] as const
 }
@@ -219,6 +251,7 @@ export default function App() {
     window.open(
       `https://x.com/intent/tweet?text=${tweetText}&url=${encodeURIComponent(shareUrl)}`,
       "_blank",
+      "noopener,noreferrer",
     )
   }
 
@@ -381,32 +414,38 @@ export default function App() {
         </button>
       </div>
 
-      <SettingsDrawer
-        open={showSettings}
-        onClose={() => setShowSettings(false)}
-        settings={aiSettings}
-        onSave={setAiSettings}
-        onToast={(msg) => setToast(msg)}
-        activeTag={activeTag}
-        onSelectTag={(tag) => setActiveTag(tag)}
-        customTag={customTag}
-        onSetCustomTag={(tag) => setCustomTag(tag)}
-      />
+      <Suspense fallback={null}>
+        {showSettings && (
+          <SettingsDrawer
+            open={showSettings}
+            onClose={() => setShowSettings(false)}
+            settings={aiSettings}
+            onSave={setAiSettings}
+            onToast={(msg) => setToast(msg)}
+            activeTag={activeTag}
+            onSelectTag={(tag) => setActiveTag(tag)}
+            customTag={customTag}
+            onSetCustomTag={(tag) => setCustomTag(tag)}
+          />
+        )}
+      </Suspense>
 
-      {showSaved && (
-        <SavedPanel
-          saved={saved}
-          done={done}
-          isCurrentSaved={isSaved}
-          onToggleSaveCurrent={toggleSave}
-          onClose={() => setShowSaved(false)}
-          onOpen={(b) => {
-            setOpened(b)
-            setShowSaved(false)
-          }}
-          onRemove={(id) => setSaved(saved.filter((s) => s.id !== id))}
-        />
-      )}
+      <Suspense fallback={null}>
+        {showSaved && (
+          <SavedPanel
+            saved={saved}
+            done={done}
+            isCurrentSaved={isSaved}
+            onToggleSaveCurrent={toggleSave}
+            onClose={() => setShowSaved(false)}
+            onOpen={(b) => {
+              setOpened(b)
+              setShowSaved(false)
+            }}
+            onRemove={(id) => setSaved(saved.filter((s) => s.id !== id))}
+          />
+        )}
+      </Suspense>
 
       <div
         role="status"
@@ -419,6 +458,9 @@ export default function App() {
       >
         {toast}
       </div>
+
+      <Analytics />
+      <SpeedInsights />
     </div>
   )
 }

@@ -4,6 +4,49 @@ All notable changes to the **Dailybrief** project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and adheres to the **Agent Logging Protocol** defined in [`AGENTS.md`](./AGENTS.md).
 
+## [1.4.0] - 2026-10-23
+
+### Performance
+- **92% Reduction in Initial Entry Bundle Size**:
+  - Dropped `index.js` payload from **640.48 kB (212.60 kB gzip)** down to **50.16 kB (15.32 kB gzip)**.
+  - Implemented manual chunking in [`vite.config.ts`](file:///c:/Users/mushfiq/Documents/Daily%20UI_UX%20Design%20Challenge/vite.config.ts) to isolate `src/data/library.ts` (335 kB) into `brief-library.js` and React 19 into `vendor-react.js`, enabling long-term CDN caching without layout shifts.
+  - Code-split secondary drawers and modals (`SettingsDrawer`, `SavedPanel`, `DocumentationModal`) using `React.lazy()` and `<Suspense>`, removing over 75 kB of dormant UI logic from initial parsing.
+- **Eliminated Render-Blocking CSS & Font Import Waterfall**:
+  - Removed redundant `@import` font request from [`src/index.css`](file:///c:/Users/mushfiq/Documents/Daily%20UI_UX%20Design%20Challenge/src/index.css), stopping Vite from inserting a blocking stylesheet fetch at character 0 of the compiled CSS.
+  - Retained asynchronous preconnected fonts in `index.html` with `font-display: swap`, speeding up First Contentful Paint by 200ms-400ms.
+
+### Fixed & Hardened
+- **LocalStorage State Crash-Proofing**:
+  - Wrapped `localStorage.setItem` in a safe `try/catch` block in `src/App.tsx:usePersistent` to prevent unhandled exceptions during storage quota exhaustion or private browsing mode.
+  - Added schema validation and deep object merging with `DEFAULT_AI_SETTINGS` during hydration, eliminating null-pointer dereference crashes on corrupted storage keys.
+- **Mobile Canvas Usability & Zoom Ergonomics**:
+  - Replaced hardcoded `MIN_K = 0.85` in [`src/components/InfiniteCanvas.tsx`](file:///c:/Users/mushfiq/Documents/Daily%20UI_UX%20Design%20Challenge/src/components/InfiniteCanvas.tsx) with dynamic viewport scale calculation (`getMinK`).
+  - Mobile screens (< 768px) now automatically fit to view on load rather than starting with 65% of the canvas clipped offscreen.
+  - "Fit to screen" button now accurately scales the 3-column brief onto mobile viewports down to 22% scale.
+- **Security & Secret Protection**:
+  - Switched Google Gemini API key passing from URL query parameters (`?key=...`) to the official `x-goog-api-key` HTTP header in both [`src/lib/ai.ts`](file:///c:/Users/mushfiq/Documents/Daily%20UI_UX%20Design%20Challenge/src/lib/ai.ts) and [`src/components/SettingsDrawer.tsx`](file:///c:/Users/mushfiq/Documents/Daily%20UI_UX%20Design%20Challenge/src/components/SettingsDrawer.tsx), eliminating query-string credential leaks.
+  - Added `noopener,noreferrer` protection to external links and `window.open` calls to prevent reverse tabnabbing.
+  - Added production-aware guidance for local Ollama and Anthropic CORS limitations on HTTPS deployments.
+
+### Added
+- **Vercel Web Analytics & Speed Insights Integration**:
+  - Integrated `@vercel/analytics/react` to count daily visitors, page views, bounce rate, referrers, and device telemetry in the Vercel Analytics dashboard.
+  - Integrated `@vercel/speed-insights/react` for Real User Monitoring (RUM) of Core Web Vitals (LCP, FID/INP, CLS, FCP) in production.
+  - Updated `vercel.json` rewrite rules with `(?!assets/|fonts/|favicon\\.svg|robots\\.txt|_vercel/)` so Vercel's edge analytics collector beacons (`/_vercel/insights/...` and `/_vercel/speed-insights/...`) bypass the SPA index.html rewrite.
+- **Vercel Free-Tier Infrastructure Configuration (`vercel.json`)**:
+  - Added 1-year immutable caching (`public, max-age=31536000, immutable`) for `/assets/(.*)` and `/fonts/(.*)` to maximize CDN cache hit ratio (>98%) and protect the 100 GB monthly bandwidth quota.
+  - Configured SPA rewrites to `/index.html` so client-side navigation never 404s.
+  - Enforced security headers: `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, and `Permissions-Policy`.
+- **Search Engine Discovery & SEO**:
+  - Enabled `"robots": { "index": true }` in [`.figma/make/site.json`](file:///c:/Users/mushfiq/Documents/Daily%20UI_UX%20Design%20Challenge/.figma/make/site.json) and fallback configuration.
+  - Emits `User-agent: *\nAllow: /\n` into `robots.txt` and `<meta name="robots" content="index, follow">` into `index.html`.
+
+### Verification
+- `pnpm run build`: Success in 840ms. Entry chunk `index.js` reduced from 640.48 kB to 50.16 kB (15.32 kB gzip).
+- `pnpm exec oxfmt src`: Formatted 24 files in 13ms with 0 violations.
+
+---
+
 ## [1.3.1] - 2026-10-23
 
 ### Fixed

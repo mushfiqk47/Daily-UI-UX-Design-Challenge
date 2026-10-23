@@ -15,7 +15,7 @@ export const COL_RIGHT_W = 400
 export const COL_GAP = 28
 export const WORLD_W = COL_LEFT_W + COL_GAP + COL_MID_W + COL_GAP + COL_RIGHT_W // 1316
 export const WORLD_H = 880
-export const MIN_K = 0.85
+export const DEFAULT_MIN_K = 0.85
 export const MAX_K = 2
 
 export type View = {
@@ -38,6 +38,13 @@ export function InfiniteCanvas({ children }: InfiniteCanvasProps) {
   const pointers = useRef<Map<number, { x: number y: number }>>(new Map())
   const pinch = useRef<{ dist: number k: number } | null>(null)
 
+  const getMinK = useCallback(() => {
+    if (typeof window === "undefined") return DEFAULT_MIN_K
+    const width =
+      ref.current?.getBoundingClientRect().width || window.innerWidth
+    return Math.min(DEFAULT_MIN_K, Math.max(0.22, (width - 24) / WORLD_W))
+  }, [])
+
   const centerAt = useCallback((targetK: number) => {
     const el = ref.current
     if (!el) return
@@ -53,30 +60,40 @@ export function InfiniteCanvas({ children }: InfiniteCanvasProps) {
     const el = ref.current
     if (!el) return
     const { width, height } = el.getBoundingClientRect()
-    const pad = 64
-    const k = clamp(
-      Math.min((width - pad * 2) / WORLD_W, (height - 120 - pad) / WORLD_H),
-      MIN_K,
-      1,
+    const isMobile = width < 768
+    const pad = isMobile ? 16 : 64
+    const minK = getMinK()
+    const idealK = Math.min(
+      (width - pad * 2) / WORLD_W,
+      (height - (isMobile ? 160 : 180)) / WORLD_H,
     )
+    const k = clamp(idealK, minK, 1)
     setView({
       k,
       x: (width - WORLD_W * k) / 2,
-      y: (height - WORLD_H * k) / 2,
+      y: Math.max(isMobile ? 64 : 40, (height - WORLD_H * k) / 2),
     })
-  }, [])
+  }, [getMinK])
 
   useLayoutEffect(() => {
-    centerAt(1)
-  }, [centerAt])
+    if (typeof window !== "undefined" && window.innerWidth < 768) {
+      fit()
+    } else {
+      centerAt(1)
+    }
+  }, [centerAt, fit])
 
-  const zoomAt = useCallback((cx: number, cy: number, factor: number) => {
-    setView((v) => {
-      const k = clamp(v.k * factor, MIN_K, MAX_K)
-      const r = k / v.k
-      return { k, x: cx - (cx - v.x) * r, y: cy - (cy - v.y) * r }
-    })
-  }, [])
+  const zoomAt = useCallback(
+    (cx: number, cy: number, factor: number) => {
+      const minK = getMinK()
+      setView((v) => {
+        const k = clamp(v.k * factor, minK, MAX_K)
+        const r = k / v.k
+        return { k, x: cx - (cx - v.x) * r, y: cy - (cy - v.y) * r }
+      })
+    },
+    [getMinK],
+  )
 
   useEffect(() => {
     const el = ref.current
@@ -180,7 +197,7 @@ export function InfiniteCanvas({ children }: InfiniteCanvasProps) {
           <button
             aria-label="Zoom out"
             onClick={() => zoomCenter(1 / 1.2)}
-            disabled={view.k <= MIN_K + 0.001}
+            disabled={view.k <= getMinK() + 0.001}
             className="grid size-8 place-items-center rounded-lg hover:bg-surface active:bg-hairline disabled:opacity-35 disabled:hover:bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             <Minus className="size-4" />

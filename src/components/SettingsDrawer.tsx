@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, lazy, Suspense } from "react"
 import { Check, Plus, SlidersHorizontal, X } from "lucide-react"
 import {
   DEFAULT_AI_SETTINGS,
@@ -12,12 +12,17 @@ import {
   type WebGpuProgress,
 } from "../lib/ai"
 import type { DropdownOption } from "./CustomDropdown"
-import { DocumentationModal } from "./DocumentationModal"
 import { WebGpuSection } from "./settings/WebGpuSection"
 import { OpenAiSection } from "./settings/OpenAiSection"
 import { AnthropicSection } from "./settings/AnthropicSection"
 import { GeminiSection } from "./settings/GeminiSection"
 import { CustomEndpointSection } from "./settings/CustomEndpointSection"
+
+const DocumentationModal = lazy(() =>
+  import("./DocumentationModal").then((m) => ({
+    default: m.DocumentationModal,
+  })),
+)
 
 interface SettingsDrawerProps {
   open: boolean
@@ -147,14 +152,24 @@ export function SettingsDrawer({
         const baseUrl =
           local.anthropicBaseUrl?.replace(/\/$/, "") ||
           "https://api.anthropic.com"
-        const res = await fetch(`${baseUrl}/v1/models`, {
-          method: "GET",
-          headers: {
-            "x-api-key": local.anthropicApiKey.trim(),
-            "anthropic-version": "2023-06-01",
-            "dangerously-allow-browser": "true",
-          },
-        })
+        let res: Response
+        try {
+          res = await fetch(`${baseUrl}/v1/models`, {
+            method: "GET",
+            headers: {
+              "x-api-key": local.anthropicApiKey.trim(),
+              "anthropic-version": "2023-06-01",
+              "dangerously-allow-browser": "true",
+            },
+          })
+        } catch (fetchErr: any) {
+          if (baseUrl.includes("api.anthropic.com")) {
+            throw new Error(
+              "Direct calls to api.anthropic.com are blocked by CORS in web browsers. Use a gateway proxy in Anthropic Base URL (e.g. Cloudflare AI Gateway) or switch to Gemini/OpenAI.",
+            )
+          }
+          throw fetchErr
+        }
         if (!res.ok) {
           const err = await res.text()
           throw new Error(`Claude error (${res.status}): ${err.slice(0, 100)}`)
@@ -226,7 +241,12 @@ export function SettingsDrawer({
           throw new Error("Enter a Google AI Studio API key first")
         }
         const res = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models?key=${local.geminiApiKey.trim()}`,
+          "https://generativelanguage.googleapis.com/v1beta/models",
+          {
+            headers: {
+              "x-goog-api-key": local.geminiApiKey.trim(),
+            },
+          },
         )
         if (!res.ok) {
           const err = await res.text()
@@ -282,8 +302,16 @@ export function SettingsDrawer({
               res = await fetch(`${proxyUrl}/models`, { headers })
               update("customBaseUrl", proxyUrl)
             } catch {
+              if (
+                typeof window !== "undefined" &&
+                window.location.protocol === "https:"
+              ) {
+                throw new Error(
+                  "Local Ollama (HTTP) cannot be reached from public HTTPS due to browser Mixed Content rules. Use WebGPU for private on-device generation, or an HTTPS tunnel.",
+                )
+              }
               throw new Error(
-                'Ollama CORS blocked. Run: setx OLLAMA_ORIGINS "*" in terminal & restart Ollama, or use "/ollama/v1"',
+                'Ollama CORS blocked. Run: setx OLLAMA_ORIGINS "*" in terminal & restart Ollama, or use "/ollama/v1" in local dev.',
               )
             }
           } else {
@@ -696,7 +724,14 @@ export function SettingsDrawer({
         </div>
       </div>
 
-      <DocumentationModal open={showDocs} onClose={() => setShowDocs(false)} />
+      <Suspense fallback={null}>
+        {showDocs && (
+          <DocumentationModal
+            open={showDocs}
+            onClose={() => setShowDocs(false)}
+          />
+        )}
+      </Suspense>
     </div>
   )
 }

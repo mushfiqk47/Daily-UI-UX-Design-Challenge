@@ -343,7 +343,7 @@ export function DocumentationModal({ open, onClose }: DocumentationModalProps) {
                 <a
                   href="https://aistudio.google.com/"
                   target="_blank"
-                  rel="noreferrer"
+                  rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 text-[11.5px] text-accent font-semibold hover:underline"
                 >
                   <span>Get Free Gemini API Key at Google AI Studio</span>

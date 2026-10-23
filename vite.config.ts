@@ -48,6 +48,9 @@ function loadSiteConfiguration(): FigmaSiteConfiguration {
     icons: {
       icon: "/favicon.svg",
     },
+    robots: {
+      index: true,
+    },
     accessibility: {
       addBypassLinks: false,
     },
@@ -68,6 +71,24 @@ export default defineConfig(({ mode }) => {
     build: {
       sourcemap: emitSourcemaps ? "inline" : false,
       minify: !emitSourcemaps,
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (id.includes("src/data/library.ts")) {
+              return "brief-library"
+            }
+            if (
+              id.includes("node_modules/react/") ||
+              id.includes("node_modules/react-dom/")
+            ) {
+              return "vendor-react"
+            }
+            if (id.includes("node_modules/lucide-react/")) {
+              return "vendor-icons"
+            }
+          },
+        },
+      },
     },
     plugins: [
       react(),
@@ -144,7 +165,9 @@ function figmaSiteConfiguration(config: FigmaSiteConfiguration): Plugin {
   const bodyStart = config.customScripts?.bodyStart ?? ""
   const bodyEnd = config.customScripts?.bodyEnd ?? ""
   const robotsTxt =
-    config.robots?.index === false ? "User-agent: *\nDisallow: /\n" : ""
+    config.robots?.index === false
+      ? "User-agent: *\nDisallow: /\n"
+      : "User-agent: *\nAllow: /\n"
 
   return {
     name: "figma-site-configuration",
@@ -193,6 +216,12 @@ function figmaSiteConfiguration(config: FigmaSiteConfiguration): Plugin {
           tags.push({
             tag: "meta",
             attrs: { name: "robots", content: "noindex, nofollow" },
+            injectTo: "head",
+          })
+        } else {
+          tags.push({
+            tag: "meta",
+            attrs: { name: "robots", content: "index, follow" },
             injectTo: "head",
           })
         }
